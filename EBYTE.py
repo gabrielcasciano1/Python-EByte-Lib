@@ -106,11 +106,12 @@ class EBYTE_E22_CMD:
     WRONG_FRMT = 0xFF
 
 class EBYTE_E22:
-    def __init__(self, COM_PORT:str, BAUD:int = 9600, MAX_SIZE:int = 256, M0_PIN:int = 0, M1_PIN:int = 1):
+    def __init__(self, COM_PORT:str, BAUD:int = 9600, MAX_SIZE:int = 256, M0_PIN:int = 0, M1_PIN:int = 1, CHANNEL:int = 0):
         # Need to do some error checking.
         self.__PORT = COM_PORT
         self.__BAUD = BAUD
         self.__MAX_SIZE = MAX_SIZE
+        self.__CHANNEL = CHANNEL
         
         self.__m0 = M0_PIN
         self.__m1 = M1_PIN
@@ -121,7 +122,10 @@ class EBYTE_E22:
         self.__MODE = EBYTE_E22_MODE.NORMAL
         self.__com_port = None
 
-    def __change_mode(self, mode:EBYTE_E22_MODE):
+        self.set_config()
+
+
+    def __change_mode(self, mode:int):
         if mode == EBYTE_E22_MODE.NORMAL:
             # set M0 = 0 and M1 = 0 
             pass
@@ -201,5 +205,34 @@ class EBYTE_E22:
         data = self.__recv_data()
         print(f"Rx on port: {self.__PORT},\n data: {' '.join(map(str, data))}")
         return data
+    
+    def __check_device(self):
+        r = self.__read_reg(EBYTE_E22_DEFS.PID, 1)
+        print("EByte E22 on Port {self.__PORT} has product ID: {r[-1]}")
+        return len(r) > 0
 
+    def get_net_id(self):
+        pass
 
+    def set_net_id(self, id:int):
+        pass
+
+    def get_addr(self):
+        pass
+
+    def set_addr(self, addr:int):
+        pass
+    
+    def set_channel(self, channel:int):
+        if 0 <= channel <= 83: 
+            self.__CHANNEL = channel
+            self.__change_mode(EBYTE_E22_MODE.CONFIGURATION) # put the E22 in config mode
+            self.__set_reg(EBYTE_E22_DEFS.REG2, [hex(channel)])
+            self.__change_mode(EBYTE_E22_MODE.NORMAL) # put the E22 back in normal mode
+
+    def set_config(self, reg0:hex = EBYTE_E22_DEFS.REG0_DEFAULT, reg1:hex = EBYTE_E22_DEFS.REG1_DEFAULT, reg3:hex = EBYTE_E22_DEFS.REG3_DEFAULT):
+        config = [reg0, reg1, self.__CHANNEL, reg3]
+
+        self.__change_mode(EBYTE_E22_MODE.CONFIGURATION) # put the E22 in config mode
+        self.__set_reg(EBYTE_E22_DEFS.REG0, config)
+        self.__change_mode(EBYTE_E22_MODE.NORMAL) # put the E22 back in normal mode
